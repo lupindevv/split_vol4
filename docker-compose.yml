@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   backend:
-    image: alexthm1/splitbill-dev1:latest
+    image: alexthm1/backend-split:1.0
     container_name: splitbill-backend
     ports:
       - "5000:5000"
@@ -27,7 +27,7 @@ services:
       start_period: 40s
 
   frontend:
-    image: alexthm1/splitbill-frontend:latest
+    image: alexthm1/frontend-split:1.1.2
     container_name: splitbill-frontend
     ports:
       - "80:80"
