@@ -1,3 +1,5 @@
+// frontend/src/utils/formatCurrency.js
+
 export function formatCurrency(value) {
     if (value === null || value === undefined) {
         throw new TypeError('Value provided to formatCurrency must be numeric');
@@ -23,9 +25,11 @@ export function parseCurrency(value) {
 
     const withoutCurrency = trimmed.replace(/[\s€$£]/g, '');
     const cleaned = withoutCurrency.replace(/[^0-9,.-]/g, '');
-    const decimalSeparator = cleaned.includes(',') && cleaned.includes('.')
-        ? (cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.') ? ',' : '.')
-        : (cleaned.includes(',') ? ',' : '.');
+
+    const decimalSeparator =
+        cleaned.includes(',') && cleaned.includes('.')
+            ? (cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.') ? ',' : '.')
+            : (cleaned.includes(',') ? ',' : '.');
 
     let normalized = cleaned;
     if (decimalSeparator === ',') {
@@ -35,7 +39,6 @@ export function parseCurrency(value) {
     }
 
     const amount = Number.parseFloat(normalized);
-
     if (Number.isNaN(amount)) {
         throw new TypeError('Unable to parse currency amount');
     }
