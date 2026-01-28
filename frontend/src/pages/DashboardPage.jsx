@@ -30,10 +30,13 @@ const DashboardPage = () => {
             setBills(billsData);
 
             const activeTables = billsData.length;
-            const pendingPayments = billsData.reduce(
-                (sum, bill) => sum + (parseFloat(bill.total_amount) - parseFloat(bill.paid_amount)),
-                0
-            );
+
+            // ✅ Safer pendingPayments calc (handles null/undefined paid_amount)
+            const pendingPayments = billsData.reduce((sum, bill) => {
+                const total = parseFloat(bill.total_amount) || 0;
+                const paid = parseFloat(bill.paid_amount) || 0;
+                return sum + Math.max(0, total - paid);
+            }, 0);
 
             setStats({ activeTables, pendingPayments });
         } catch (error) {
@@ -60,10 +63,10 @@ const DashboardPage = () => {
         try {
             // Force delete by calling the backend delete endpoint
             await billAPI.delete(billToDelete.id);
-            
+
             // Refresh the dashboard
             await loadDashboardData();
-            
+
             // Close modal and reset
             setShowDeleteConfirm(false);
             setBillToDelete(null);
@@ -97,11 +100,17 @@ const DashboardPage = () => {
                             <p className="text-slate-400 text-sm mt-1">Welcome, {user?.name}</p>
                         </div>
                         <div className="flex gap-3">
-                            <button onClick={loadDashboardData} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg flex items-center gap-2">
+                            <button
+                                onClick={loadDashboardData}
+                                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg flex items-center gap-2"
+                            >
                                 <RefreshCw className="w-4 h-4" />
                                 Refresh
                             </button>
-                            <button onClick={logout} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-2">
+                            <button
+                                onClick={logout}
+                                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-2"
+                            >
                                 <LogOut className="w-4 h-4" />
                                 Logout
                             </button>
@@ -121,14 +130,17 @@ const DashboardPage = () => {
                         <p className="text-3xl font-bold text-yellow-500">€{stats.pendingPayments.toFixed(2)}</p>
                     </div>
                     <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-                        <button onClick={() => setShowCreateModal(true)} className="w-full h-full flex items-center justify-center gap-2 text-green-500 hover:text-green-400 transition">
+                        <button
+                            onClick={() => setShowCreateModal(true)}
+                            className="w-full h-full flex items-center justify-center gap-2 text-green-500 hover:text-green-400 transition"
+                        >
                             <Plus className="w-6 h-6" />
                             <span className="text-lg font-semibold">Create Bill</span>
                         </button>
                     </div>
                     <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-                        <button 
-                            onClick={() => bills.length > 0 && handleDeleteClick(bills[0])} 
+                        <button
+                            onClick={() => bills.length > 0 && handleDeleteClick(bills[0])}
                             disabled={bills.length === 0}
                             className="w-full h-full flex items-center justify-center gap-2 text-red-500 hover:text-red-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
                         >
@@ -144,13 +156,28 @@ const DashboardPage = () => {
                         {[1, 2, 3, 4, 5].map((num) => {
                             const bill = bills.find(b => b.table_number === String(num));
                             return (
-                                <div key={num} className={`rounded-lg p-6 border-2 text-center ${bill ? 'bg-blue-500/10 border-blue-500' : 'bg-slate-800 border-slate-700'}`}>
+                                <div
+                                    key={num}
+                                    className={`rounded-lg p-6 border-2 text-center ${
+                                        bill ? 'bg-blue-500/10 border-blue-500' : 'bg-slate-800 border-slate-700'
+                                    }`}
+                                >
                                     <div className="text-4xl mb-2">🪑</div>
                                     <h3 className="text-2xl font-bold text-white mb-2">Table {num}</h3>
+
                                     {bill ? (
                                         <div>
                                             <p className="text-blue-400 text-sm font-semibold mb-2">OCCUPIED</p>
-                                            <p className="text-slate-400 text-xs mb-3">€{parseFloat(bill.total_amount).toFixed(2)}</p>
+
+                                            {/* ✅ This is the fix: show remaining, not total */}
+                                            <p className="text-slate-400 text-xs mb-3">
+                                                Remaining: €{Math.max(
+                                                    0,
+                                                    (parseFloat(bill.total_amount) || 0) -
+                                                    (parseFloat(bill.paid_amount) || 0)
+                                                ).toFixed(2)}
+                                            </p>
+
                                             <button
                                                 onClick={() => handleDeleteClick(bill)}
                                                 className="inline-block px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition"
@@ -161,7 +188,12 @@ const DashboardPage = () => {
                                     ) : (
                                         <>
                                             <p className="text-green-400 text-sm font-semibold mb-2">AVAILABLE</p>
-                                            <a href={`http://localhost:5173/table/${num}`} target="_blank" rel="noopener noreferrer" className="inline-block px-3 py-1 bg-slate-700 text-white text-xs rounded">
+                                            <a
+                                                href={`http://localhost:5173/table/${num}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-block px-3 py-1 bg-slate-700 text-white text-xs rounded"
+                                            >
                                                 QR Link
                                             </a>
                                         </>
@@ -203,7 +235,9 @@ const DashboardPage = () => {
                             <p className="text-slate-400 text-sm mb-1">Bill Number</p>
                             <p className="text-white font-semibold mb-3">{billToDelete.bill_number}</p>
                             <p className="text-slate-400 text-sm mb-1">Total Amount</p>
-                            <p className="text-white font-semibold">€{parseFloat(billToDelete.total_amount).toFixed(2)}</p>
+                            <p className="text-white font-semibold">
+                                €{(parseFloat(billToDelete.total_amount) || 0).toFixed(2)}
+                            </p>
                         </div>
                         <p className="text-red-400 mb-6">
                             ⚠️ Warning: This will permanently delete this bill and all associated data. This action cannot be undone.
